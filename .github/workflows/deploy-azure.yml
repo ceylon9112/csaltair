@@ -48,8 +48,11 @@ jobs:
 
       - name: Build and push image
         run: |
+          # ACR repo name: alphanumeric only (hyphens in the repo name break Container Apps image pull OAuth).
+          APP="${{ env.AZURE_CONTAINER_APP_NAME }}"
+          REPO="${APP//-/}"
           az acr build --registry ${{ steps.acr.outputs.registry }} \
-            --image ${{ env.AZURE_CONTAINER_APP_NAME }}:${{ github.sha }} \
+            --image "${REPO}:${{ github.sha }}" \
             --file Dockerfile .
 
       # ACR admin password must NOT pass through GITHUB_OUTPUT — characters like $ break there and cause
@@ -62,7 +65,8 @@ jobs:
           LOGIN_SERVER="${{ steps.acr.outputs.login_server }}"
           APP_NAME="${{ env.AZURE_CONTAINER_APP_NAME }}"
           RG="${{ env.AZURE_RESOURCE_GROUP }}"
-          IMAGE="${LOGIN_SERVER}/${APP_NAME}:${{ github.sha }}"
+          REPO="${APP_NAME//-/}"
+          IMAGE="${LOGIN_SERVER}/${REPO}:${{ github.sha }}"
 
           az acr update --name "$ACR_REG" --admin-enabled true --output none
           ACR_USER=$(az acr credential show --name "$ACR_REG" --query "username" -o tsv)
