@@ -10,8 +10,15 @@ const links = [
 
 export function AppShell() {
   return (
-    <>
-      <Outlet />
+    <div className="fest-shell">
+      <div className="fest-bg" aria-hidden>
+        <span className="fest-orb fest-orb--a" />
+        <span className="fest-orb fest-orb--b" />
+        <span className="fest-orb fest-orb--c" />
+      </div>
+      <main className="fest-main">
+        <Outlet />
+      </main>
       <nav className="tabs" aria-label="Main">
         {links.map(({ to, label, icon }) => (
           <NavLink
@@ -24,6 +31,6 @@ export function AppShell() {
           </NavLink>
         ))}
       </nav>
-    </>
+    </div>
   );
 }

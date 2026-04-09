@@ -63,12 +63,19 @@ export function HomePage() {
 
   return (
     <div className="page">
-      <p className="caption">Jazz Fest 2026 · Guest mode · offline-ready (Vite web build)</p>
-      <h1 className="title">New Orleans Jazz &amp; Heritage Festival</h1>
-      <p className="muted">Today on site: {formatDayLabel(festDay)}</p>
-      {lastSyncedAt ? (
-        <p className="caption">Content cached: {format(parseISO(lastSyncedAt), 'MMM d, h:mm a')}</p>
-      ) : null}
+      <header className="fest-hero">
+        <p className="fest-kicker">Live music · Fairgrounds energy · NOLA soul</p>
+        <h1 className="title">New Orleans Jazz &amp; Heritage Festival</h1>
+        <p className="muted" style={{ margin: 0 }}>
+          Today on site: <strong>{formatDayLabel(festDay)}</strong>
+        </p>
+        <p className="caption" style={{ marginTop: '0.5rem' }}>
+          Jazz Fest 2026 · Guest mode · offline-ready
+        </p>
+        {lastSyncedAt ? (
+          <p className="caption">Content cached: {format(parseISO(lastSyncedAt), 'MMM d, h:mm a')}</p>
+        ) : null}
+      </header>
 
       <WeatherWidget />
 
