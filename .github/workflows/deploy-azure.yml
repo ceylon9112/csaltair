@@ -68,6 +68,16 @@ jobs:
           ACR_USER=$(az acr credential show --name "$ACR_REG" --query "username" -o tsv)
           ACR_PASS=$(az acr credential show --name "$ACR_REG" --query "passwords[0].value" -o tsv)
 
+          # Prior failed deploys can leave the app in ProvisioningState=Failed; updates then error with
+          # ResourceNotProvisioned. Remove a failed app so we can create a clean one.
+          if az containerapp show --name "$APP_NAME" --resource-group "$RG" &>/dev/null; then
+            PROV=$(az containerapp show --name "$APP_NAME" --resource-group "$RG" --query "properties.provisioningState" -o tsv)
+            if [ "$PROV" = "Failed" ]; then
+              echo "Removing failed Container App for clean redeploy..."
+              az containerapp delete --name "$APP_NAME" --resource-group "$RG" --yes --output none
+            fi
+          fi
+
           EXISTS=$(az containerapp show --name "$APP_NAME" --resource-group "$RG" --query name -o tsv 2>/dev/null || true)
           if [ -z "$EXISTS" ]; then
             az containerapp create \
