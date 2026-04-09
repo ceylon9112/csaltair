@@ -68,6 +68,12 @@ jobs:
           ACR_USER=$(az acr credential show --name "$ACR_REG" --query "username" -o tsv)
           ACR_PASS=$(az acr credential show --name "$ACR_REG" --query "passwords[0].value" -o tsv)
 
+          # Pass ACR password via @file so Azure CLI does not corrupt characters ($, ", etc.) on the shell line
+          # (symptom: UNAUTHORIZED / malformed OAuth URL like "GET https:?scope=...").
+          PASS_FILE="${RUNNER_TEMP:-/tmp}/acr-registry.pass"
+          printf '%s' "$ACR_PASS" > "$PASS_FILE"
+          chmod 600 "$PASS_FILE"
+
           # Prior failed deploys can leave the app in ProvisioningState=Failed; updates then error with
           # ResourceNotProvisioned. Remove a failed app so we can create a clean one.
           if az containerapp show --name "$APP_NAME" --resource-group "$RG" &>/dev/null; then
@@ -89,7 +95,7 @@ jobs:
               --ingress external \
               --registry-server "$LOGIN_SERVER" \
               --registry-username "$ACR_USER" \
-              --registry-password "$ACR_PASS" \
+              --registry-password "@${PASS_FILE}" \
               --output none
           else
             az containerapp registry set \
@@ -97,13 +103,14 @@ jobs:
               --resource-group "$RG" \
               --server "$LOGIN_SERVER" \
               --username "$ACR_USER" \
-              --password "$ACR_PASS"
+              --password "@${PASS_FILE}"
             az containerapp update \
               --name "$APP_NAME" \
               --resource-group "$RG" \
               --image "$IMAGE" \
               --output none
           fi
+          rm -f "$PASS_FILE"
           FQDN=$(az containerapp show --name "$APP_NAME" --resource-group "$RG" --query "properties.configuration.ingress.fqdn" -o tsv)
           echo "url=https://$FQDN" >> $GITHUB_OUTPUT
 
