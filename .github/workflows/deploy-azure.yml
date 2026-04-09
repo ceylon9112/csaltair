@@ -52,40 +52,49 @@ jobs:
             --image ${{ env.AZURE_CONTAINER_APP_NAME }}:${{ github.sha }} \
             --file Dockerfile .
 
-      - name: Enable ACR admin and get credentials
-        id: acr-creds
-        run: |
-          az acr update --name ${{ steps.acr.outputs.registry }} --admin-enabled true --output none
-          USER=$(az acr credential show --name ${{ steps.acr.outputs.registry }} --query "username" -o tsv)
-          PASS=$(az acr credential show --name ${{ steps.acr.outputs.registry }} --query "passwords[0].value" -o tsv)
-          echo "username=$USER" >> $GITHUB_OUTPUT
-          echo "password=$PASS" >> $GITHUB_OUTPUT
-
+      # ACR admin password must NOT pass through GITHUB_OUTPUT — characters like $ break there and cause
+      # UNAUTHORIZED when the Container App pulls from ACR. Fetch creds in the same shell as az commands.
       - name: Create or update Container App
         id: deploy
         run: |
-          EXISTS=$(az containerapp show --name ${{ env.AZURE_CONTAINER_APP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --output tsv 2>/dev/null || echo "")
-          IMAGE="${{ steps.acr.outputs.login_server }}/${{ env.AZURE_CONTAINER_APP_NAME }}:${{ github.sha }}"
+          set -e
+          ACR_REG="${{ steps.acr.outputs.registry }}"
+          LOGIN_SERVER="${{ steps.acr.outputs.login_server }}"
+          APP_NAME="${{ env.AZURE_CONTAINER_APP_NAME }}"
+          RG="${{ env.AZURE_RESOURCE_GROUP }}"
+          IMAGE="${LOGIN_SERVER}/${APP_NAME}:${{ github.sha }}"
+
+          az acr update --name "$ACR_REG" --admin-enabled true --output none
+          ACR_USER=$(az acr credential show --name "$ACR_REG" --query "username" -o tsv)
+          ACR_PASS=$(az acr credential show --name "$ACR_REG" --query "passwords[0].value" -o tsv)
+
+          EXISTS=$(az containerapp show --name "$APP_NAME" --resource-group "$RG" --query name -o tsv 2>/dev/null || true)
           if [ -z "$EXISTS" ]; then
             az containerapp create \
-              --name ${{ env.AZURE_CONTAINER_APP_NAME }} \
-              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+              --name "$APP_NAME" \
+              --resource-group "$RG" \
               --environment ${{ env.AZURE_CONTAINER_ENV }} \
-              --image $IMAGE \
+              --image "$IMAGE" \
               --target-port 80 \
               --ingress external \
-              --registry-server ${{ steps.acr.outputs.login_server }} \
-              --registry-username ${{ steps.acr-creds.outputs.username }} \
-              --registry-password ${{ steps.acr-creds.outputs.password }} \
+              --registry-server "$LOGIN_SERVER" \
+              --registry-username "$ACR_USER" \
+              --registry-password "$ACR_PASS" \
               --output none
           else
+            az containerapp registry set \
+              --name "$APP_NAME" \
+              --resource-group "$RG" \
+              --server "$LOGIN_SERVER" \
+              --username "$ACR_USER" \
+              --password "$ACR_PASS"
             az containerapp update \
-              --name ${{ env.AZURE_CONTAINER_APP_NAME }} \
-              --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
-              --image $IMAGE \
+              --name "$APP_NAME" \
+              --resource-group "$RG" \
+              --image "$IMAGE" \
               --output none
           fi
-          FQDN=$(az containerapp show --name ${{ env.AZURE_CONTAINER_APP_NAME }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv)
+          FQDN=$(az containerapp show --name "$APP_NAME" --resource-group "$RG" --query "properties.configuration.ingress.fqdn" -o tsv)
           echo "url=https://$FQDN" >> $GITHUB_OUTPUT
 
       - name: Deployment URL
