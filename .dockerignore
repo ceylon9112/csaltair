@@ -1,0 +1,13 @@
+node_modules
+patron-web/node_modules
+.git
+.expo
+dist
+dist-web
+web-build
+**/.DS_Store
+**/android
+**/ios
+*.log
+npm-debug.*
+coverage

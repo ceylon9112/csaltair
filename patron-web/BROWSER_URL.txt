@@ -1,0 +1,10 @@
+ERR_CONNECTION_REFUSED = nothing is listening. You must START the dev server first, then open the URL.
+
+1) In a terminal: cd to jazz-fest-2026, run:  npm run web:vite
+   OR double-click:  Start-Vite-Web.cmd  (keep the window open)
+
+2) Wait until you see:  Local: http://127.0.0.1:5173/
+
+3) Open that exact URL in Chrome or Edge (include :5173 — not http://127.0.0.1 alone).
+
+If the port is different (5174, etc.), use the URL printed in the terminal.

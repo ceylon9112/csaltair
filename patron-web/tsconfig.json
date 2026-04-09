@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "strict": true,
+    "jsx": "react-jsx",
+    "noEmit": true,
+    "isolatedModules": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/services/notifications/NotificationService": ["./src/shims/NotificationService.ts"],
+      "@react-native-async-storage/async-storage": ["./src/shims/asyncStorage.ts"],
+      "@/*": ["../*"]
+    }
+  },
+  "include": ["src"]
+}

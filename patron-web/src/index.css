@@ -1,0 +1,152 @@
+:root {
+  --bg: #fff9f0;
+  --surface: #fdf6e9;
+  --text: #1a1410;
+  --muted: #4a4038;
+  --tint: #2d5a4a;
+  --brass: #c4953a;
+  --line: #e5d9c8;
+  --danger: #b33a3a;
+  --radius: 12px;
+  --space: 16px;
+  --font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.45;
+}
+
+a {
+  color: var(--tint);
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--space);
+  padding-bottom: 96px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: var(--space);
+  margin-bottom: var(--space);
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+}
+
+.subtitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+
+.caption {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 20px;
+  border-radius: 999px;
+  border: none;
+  background: var(--tint);
+  color: #fff;
+  font-weight: 600;
+}
+
+.btn.secondary {
+  background: transparent;
+  color: var(--text);
+  border: 2px solid var(--line);
+}
+
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+  margin-top: 8px;
+}
+
+.tabs {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: space-around;
+  gap: 4px;
+  padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  z-index: 10;
+}
+
+.tabs a {
+  flex: 1;
+  text-align: center;
+  text-decoration: none;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 6px 2px;
+  border-radius: 8px;
+}
+
+.tabs a.active {
+  color: var(--tint);
+  background: rgba(45, 90, 74, 0.12);
+}
+
+.tabs a span {
+  display: block;
+  font-size: 1.1rem;
+  margin-bottom: 2px;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}

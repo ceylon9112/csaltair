@@ -1,0 +1,10 @@
+Copy this exact line into your browser address bar (plain HTTP, not HTTPS):
+
+http://127.0.0.1:8081
+
+Wrong (will show ERR_NAME_NOT_RESOLVED or similar):
+- https://127.0.0.1:8081
+- https://ttp//127.0.0.1:8081
+- http://localhost:8081  (try 127.0.0.1 first if localhost fails)
+
+Start the server first: npm run web
