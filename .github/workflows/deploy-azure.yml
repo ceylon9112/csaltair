@@ -59,6 +59,8 @@ jobs:
       # ACR admin user + password often break Container Apps image validation (OAuth realm / UNAUTHORIZED).
       - name: Create or update Container App
         id: deploy
+        env:
+          CREDS_JSON: ${{ secrets.AZURE_CREDENTIALS }}
         run: |
           set -e
           LOGIN_SERVER="${{ steps.acr.outputs.login_server }}"
@@ -67,8 +69,13 @@ jobs:
           REPO="${APP_NAME//-/}"
           IMAGE="${LOGIN_SERVER}/${REPO}:${{ github.sha }}"
 
-          CLIENT_ID="${AZURE_CLIENT_ID:-$ARM_CLIENT_ID}"
-          CLIENT_SECRET="${AZURE_CLIENT_SECRET:-$ARM_CLIENT_SECRET}"
+          # azure/login does not export AZURE_CLIENT_SECRET to later steps; read SP creds from the same JSON.
+          CLIENT_ID=$(echo "$CREDS_JSON" | jq -r .clientId)
+          CLIENT_SECRET=$(echo "$CREDS_JSON" | jq -r .clientSecret)
+          if [ -z "$CLIENT_ID" ] || [ "$CLIENT_ID" = "null" ] || [ -z "$CLIENT_SECRET" ] || [ "$CLIENT_SECRET" = "null" ]; then
+            echo "::error::Could not parse clientId/clientSecret from AZURE_CREDENTIALS"
+            exit 1
+          fi
           PASS_FILE="${RUNNER_TEMP:-/tmp}/acr-sp-secret.pass"
           printf '%s' "$CLIENT_SECRET" > "$PASS_FILE"
           chmod 600 "$PASS_FILE"
