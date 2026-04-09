@@ -14,6 +14,9 @@ const repoRoot = path.resolve(__dirname, '..');
 export default defineConfig({
   plugins: [react()],
   resolve: {
+    // Shared `@/` imports pull in `hooks/` from the repo root; without dedupe, Vite can bundle a
+    // second copy of react-query → React context mismatch ("No QueryClient set").
+    dedupe: ['react', 'react-dom', '@tanstack/react-query'],
     alias: [
       {
         find: '@/services/notifications/NotificationService',
