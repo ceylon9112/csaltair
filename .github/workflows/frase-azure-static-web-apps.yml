@@ -30,7 +30,10 @@ jobs:
     permissions:
       contents: read
       deployments: write
+    # Map secrets into env so step `if:` can test presence (step `if` cannot use `secrets.*`).
     env:
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      AZURE_STATIC_WEB_APPS_API_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
       V_SWA_NAME: ${{ vars.AZURE_STATIC_WEB_APP_NAME }}
       V_SWA_RG: ${{ vars.AZURE_RESOURCE_GROUP }}
     defaults:
@@ -51,13 +54,13 @@ jobs:
         run: npm ci && npm run build
 
       - name: Azure Login
-        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        if: ${{ env.AZURE_CREDENTIALS != '' }}
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Fetch deployment token from Azure
-        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        if: ${{ env.AZURE_CREDENTIALS != '' }}
         run: |
           set -euo pipefail
           REPO="${{ github.repository }}"
@@ -95,7 +98,7 @@ jobs:
           echo "SWA_DEPLOYMENT_TOKEN=$TOKEN" >> "$GITHUB_ENV"
 
       - name: Use stored deployment token only
-        if: ${{ secrets.AZURE_CREDENTIALS == '' && secrets.AZURE_STATIC_WEB_APPS_API_TOKEN != '' }}
+        if: ${{ env.AZURE_CREDENTIALS == '' && env.AZURE_STATIC_WEB_APPS_API_TOKEN != '' }}
         env:
           T: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
         run: |
