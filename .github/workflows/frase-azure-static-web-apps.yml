@@ -1,0 +1,131 @@
+# Frase Protection — Azure Static Web Apps (Vite app under frase-protection-annual-review/).
+# skip_app_build: true → app_location = dist, output_location = '' (Microsoft Learn).
+#
+# Deploy: secret AZURE_CREDENTIALS (SP JSON) → azure/login → fetch token via az CLI;
+# or secret AZURE_STATIC_WEB_APPS_API_TOKEN only.
+
+name: Deploy Frase Static Web App
+
+on:
+  push:
+    branches:
+      - main
+      - frase-annual-review
+    paths:
+      - 'frase-protection-annual-review/**'
+      - '.github/workflows/frase-azure-static-web-apps.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: swa-frase-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '20'
+  FRASE_DIR: frase-protection-annual-review
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+    env:
+      V_SWA_NAME: ${{ vars.AZURE_STATIC_WEB_APP_NAME }}
+      V_SWA_RG: ${{ vars.AZURE_RESOURCE_GROUP }}
+    defaults:
+      run:
+        working-directory: frase-protection-annual-review
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frase-protection-annual-review/package-lock.json
+
+      - name: Install and build
+        run: npm ci && npm run build
+
+      - name: Azure Login
+        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Fetch deployment token from Azure
+        if: ${{ secrets.AZURE_CREDENTIALS != '' }}
+        run: |
+          set -euo pipefail
+          REPO="${{ github.repository }}"
+          if [ -n "$V_SWA_NAME" ] && [ -n "$V_SWA_RG" ]; then
+            NAME="$V_SWA_NAME"
+            RG="$V_SWA_RG"
+            echo "Using GitHub Actions Variables for Static Web App name and resource group."
+          else
+            echo "Looking up Static Web App linked to github.com/${REPO}..."
+            LIST=$(az staticwebapp list -o json)
+            CNT=$(echo "$LIST" | jq --arg r "$REPO" '[.[] | select((.properties.repositoryUrl // "") | contains($r))] | length')
+            if [ "$CNT" -eq 0 ]; then
+              echo "::error::No Static Web App found for this repository. In Azure Portal, link Deployment to https://github.com/${REPO}, OR set repository Variables AZURE_STATIC_WEB_APP_NAME and AZURE_RESOURCE_GROUP (Settings → Secrets and variables → Actions → Variables)."
+              exit 1
+            fi
+            if [ "$CNT" -gt 1 ]; then
+              echo "::error::Multiple Static Web Apps match ${REPO}. Set Variables AZURE_STATIC_WEB_APP_NAME and AZURE_RESOURCE_GROUP to pick one."
+              exit 1
+            fi
+            NAME=$(echo "$LIST" | jq -r --arg r "$REPO" '.[] | select((.properties.repositoryUrl // "") | contains($r)) | .name')
+            RG=$(echo "$LIST" | jq -r --arg r "$REPO" '.[] | select((.properties.repositoryUrl // "") | contains($r)) | .resourceGroup // empty')
+            if [ -z "$RG" ]; then
+              ID=$(echo "$LIST" | jq -r --arg r "$REPO" '.[] | select((.properties.repositoryUrl // "") | contains($r)) | .id')
+              RG=$(echo "$ID" | sed -n 's|.*/resourceGroups/\([^/]*\)/.*|\1|p')
+            fi
+          fi
+
+          echo "Static Web App: $NAME (resource group: $RG)"
+          TOKEN=$(az staticwebapp secrets list --name "$NAME" --resource-group "$RG" --query "properties.apiKey" -o tsv)
+          if [ -z "$TOKEN" ]; then
+            echo "::error::Could not read deployment token. Grant this service principal access (e.g. Contributor on the resource group)."
+            exit 1
+          fi
+          echo "::add-mask::$TOKEN"
+          echo "SWA_DEPLOYMENT_TOKEN=$TOKEN" >> "$GITHUB_ENV"
+
+      - name: Use stored deployment token only
+        if: ${{ secrets.AZURE_CREDENTIALS == '' && secrets.AZURE_STATIC_WEB_APPS_API_TOKEN != '' }}
+        env:
+          T: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+        run: |
+          echo "::add-mask::$T"
+          echo "SWA_DEPLOYMENT_TOKEN=$T" >> "$GITHUB_ENV"
+
+      - name: Decide whether to deploy
+        id: deploy_gate
+        run: |
+          if [ -n "${SWA_DEPLOYMENT_TOKEN:-}" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy to Azure Static Web Apps
+        id: deploy
+        if: ${{ steps.deploy_gate.outputs.deploy == 'true' }}
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ env.SWA_DEPLOYMENT_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          action: upload
+          app_location: frase-protection-annual-review/dist
+          api_location: ''
+          output_location: ''
+          skip_app_build: true
+          skip_api_build: true
+
+      - name: No Azure deploy (missing credentials)
+        if: ${{ success() && steps.deploy.outcome == 'skipped' }}
+        run: |
+          echo "::notice::Build only — add repository secret AZURE_CREDENTIALS (recommended) or AZURE_STATIC_WEB_APPS_API_TOKEN. See frase-protection-annual-review/DEPLOY.md."

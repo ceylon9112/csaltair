@@ -1,0 +1,53 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-display: 'Segoe UI', system-ui, sans-serif;
+  /* Frase brand — royal blue (wordmark), gold (shield accent), neutrals */
+  --color-frase-blue: #2563eb;
+  --color-frase-blue-light: #3b82f6;
+  --color-frase-blue-dark: #1d4ed8;
+  --color-frase-gold: #ca8a04;
+  --color-frase-gold-bright: #eab308;
+  --color-frase-navy: #0f172a;
+  --color-frase-slate: #1e293b;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  font-family: var(--font-display);
+  color: #e8eef5;
+  background: linear-gradient(155deg, #0b1220 0%, #0f172a 45%, #111827 100%);
+  background-attachment: fixed;
+}
+
+#root {
+  min-height: 100dvh;
+}
+
+.app-bg-pattern {
+  background-image:
+    radial-gradient(ellipse 90% 55% at 50% -15%, rgba(37, 99, 235, 0.14), transparent),
+    radial-gradient(ellipse 50% 40% at 100% 30%, rgba(202, 138, 4, 0.06), transparent);
+}
+
+.glass-panel {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.25),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.glass-panel-strong {
+  background: rgba(255, 255, 255, 0.09);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}

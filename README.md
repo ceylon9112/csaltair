@@ -2,6 +2,8 @@
 
 Production-minded **Expo + React Native + TypeScript** app for festival patrons: lineup, schedule, static map, accessibility hub, ticket snapshots, local reviews, and local reminders — **guest mode only**, **offline-first**, **no backend** in MVP.
 
+**Frase Protection — Annual Alarm System Review** (separate **Vite** SPA for field visits) lives under **`frase-protection-annual-review/`**. See [frase-protection-annual-review/DEPLOY.md](frase-protection-annual-review/DEPLOY.md).
+
 ## Stack
 
 | Layer | Choice |

@@ -1,0 +1,53 @@
+{
+  "name": "frase-protection-annual-review",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ceylon9112/csaltair.git"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "saltair": {
+    "pushRemoteBranch": "main",
+    "azureStaticWebAppName": "",
+    "azureResourceGroup": "",
+    "deploy": "CI uses AZURE_CREDENTIALS — see DEPLOY.md. Optional: azure:github-secret only if you must push the deployment token without a service principal."
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "github:push": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/Complete-Deploy.ps1",
+    "github:auto": "node ./scripts/github-auto.mjs",
+    "github:status": "git remote -v",
+    "azure:github-secret": "node ./scripts/sync-swa-secret-to-github.mjs",
+    "deploy:check": "node ./scripts/finish-check.mjs",
+    "github:open-secrets": "node ./scripts/open-github-actions-secrets.mjs"
+  },
+  "dependencies": {
+    "jspdf": "^4.2.1",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "react-router-dom": "^7.14.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@tailwindcss/vite": "^4.2.2",
+    "@types/node": "^24.12.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.4.0",
+    "tailwindcss": "^4.2.2",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.58.0",
+    "vite": "^8.0.4"
+  }
+}
