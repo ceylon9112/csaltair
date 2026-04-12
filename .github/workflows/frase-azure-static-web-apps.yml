@@ -59,7 +59,9 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Fetch deployment token from Azure
+        id: fetch_token
         if: steps.azure_login.outcome == 'success'
+        continue-on-error: true
         run: |
           set -euo pipefail
           REPO="${{ github.repository }}"
@@ -97,7 +99,7 @@ jobs:
           echo "SWA_DEPLOYMENT_TOKEN=$TOKEN" >> "$GITHUB_ENV"
 
       - name: Use stored deployment token only
-        if: steps.azure_login.outcome != 'success'
+        if: ${{ steps.azure_login.outcome != 'success' || steps.fetch_token.outcome == 'failure' }}
         env:
           T: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
         run: |
