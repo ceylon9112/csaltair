@@ -42,12 +42,14 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: frase-protection-annual-review/package-lock.json
 
-      - name: Install and build
+      - name: Install dependencies
         working-directory: frase-protection-annual-review
-        run: npm ci && npm run build
+        run: npm install --no-audit --no-fund
+
+      - name: Build
+        working-directory: frase-protection-annual-review
+        run: npm run build
 
       - name: Azure Login
         id: azure_login
