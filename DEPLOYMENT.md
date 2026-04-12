@@ -50,7 +50,7 @@ Copy the **entire JSON** output.
 
 - **Automatic:** push to **`main`** (or open **Actions → Deploy to Azure → Run workflow**).
 
-The workflow creates the resource group and Container Apps environment if missing, builds the **Dockerfile** in ACR, and deploys the container (**port 80**, nginx static SPA).
+The workflow creates the resource group and Container Apps environment if missing, builds the **Dockerfile** in ACR, grants the deployment service principal **AcrPull** on the registry (no ACR admin user), and deploys the container (**port 80**, nginx static SPA) using the same SP for registry auth.
 
 - **URL:** check the job log **Deployment URL**, or:
 

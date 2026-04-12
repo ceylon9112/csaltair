@@ -54,9 +54,29 @@ jobs:
             --image "${REPO}:${{ github.sha }}" \
             --file Dockerfile .
 
-      # Use the same Azure AD app as azure/login (AZURE_CLIENT_ID / AZURE_CLIENT_SECRET) for registry auth.
-      # That service principal must have AcrPull on the ACR (one-time): az role assignment create --assignee <appId> --role AcrPull --scope $(az acr show -g RG -n NAME --query id -o tsv)
-      # ACR admin user + password often break Container Apps image validation (OAuth realm / UNAUTHORIZED).
+      # Same SP as azure/login for registry auth (clientId + clientSecret). AcrPull is granted here — not ACR admin.
+      - name: Grant deployment SP AcrPull on ACR
+        env:
+          CREDS_JSON: ${{ secrets.AZURE_CREDENTIALS }}
+        run: |
+          set -e
+          RG="${{ env.AZURE_RESOURCE_GROUP }}"
+          REG="${{ steps.acr.outputs.registry }}"
+          CLIENT_ID=$(echo "$CREDS_JSON" | jq -r .clientId)
+          if [ -z "$CLIENT_ID" ] || [ "$CLIENT_ID" = "null" ]; then
+            echo "::error::Could not parse clientId from AZURE_CREDENTIALS"
+            exit 1
+          fi
+          ACR_ID=$(az acr show --name "$REG" --resource-group "$RG" --query id -o tsv)
+          ASSIGNED=$(az role assignment list --assignee "$CLIENT_ID" --scope "$ACR_ID" --query "[?roleDefinitionName=='AcrPull'] | length(@)" -o tsv)
+          if [ "${ASSIGNED:-0}" = "0" ]; then
+            echo "Assigning AcrPull to deployment service principal..."
+            az role assignment create --assignee "$CLIENT_ID" --role AcrPull --scope "$ACR_ID" --output none
+          else
+            echo "AcrPull already assigned."
+          fi
+          az acr update --name "$REG" --resource-group "$RG" --admin-enabled false --output none 2>/dev/null || true
+
       - name: Create or update Container App
         id: deploy
         env:
