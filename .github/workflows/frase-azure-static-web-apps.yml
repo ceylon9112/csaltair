@@ -3,6 +3,8 @@
 #
 # Deploy: secret AZURE_CREDENTIALS (SP JSON) → azure/login → fetch token via az CLI;
 # or secret AZURE_STATIC_WEB_APPS_API_TOKEN only.
+#
+# Note: Step `if:` cannot use `secrets.*`. Use `continue-on-error` on azure/login and branch on `steps.*.outcome`.
 
 name: Deploy Frase Static Web App
 
@@ -22,7 +24,6 @@ concurrency:
 
 env:
   NODE_VERSION: '20'
-  FRASE_DIR: frase-protection-annual-review
 
 jobs:
   build_and_deploy:
@@ -30,15 +31,9 @@ jobs:
     permissions:
       contents: read
       deployments: write
-    # Map secrets into env so step `if:` can test presence (step `if` cannot use `secrets.*`).
     env:
-      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
-      AZURE_STATIC_WEB_APPS_API_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
       V_SWA_NAME: ${{ vars.AZURE_STATIC_WEB_APP_NAME }}
       V_SWA_RG: ${{ vars.AZURE_RESOURCE_GROUP }}
-    defaults:
-      run:
-        working-directory: frase-protection-annual-review
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -51,16 +46,18 @@ jobs:
           cache-dependency-path: frase-protection-annual-review/package-lock.json
 
       - name: Install and build
+        working-directory: frase-protection-annual-review
         run: npm ci && npm run build
 
       - name: Azure Login
-        if: ${{ env.AZURE_CREDENTIALS != '' }}
+        id: azure_login
+        continue-on-error: true
         uses: azure/login@v2
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Fetch deployment token from Azure
-        if: ${{ env.AZURE_CREDENTIALS != '' }}
+        if: steps.azure_login.outcome == 'success'
         run: |
           set -euo pipefail
           REPO="${{ github.repository }}"
@@ -98,10 +95,15 @@ jobs:
           echo "SWA_DEPLOYMENT_TOKEN=$TOKEN" >> "$GITHUB_ENV"
 
       - name: Use stored deployment token only
-        if: ${{ env.AZURE_CREDENTIALS == '' && env.AZURE_STATIC_WEB_APPS_API_TOKEN != '' }}
+        if: steps.azure_login.outcome != 'success'
         env:
           T: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
         run: |
+          set -euo pipefail
+          if [ -z "${T:-}" ]; then
+            echo "::notice::No AZURE_STATIC_WEB_APPS_API_TOKEN secret; skipping token-only deploy path."
+            exit 0
+          fi
           echo "::add-mask::$T"
           echo "SWA_DEPLOYMENT_TOKEN=$T" >> "$GITHUB_ENV"
 
