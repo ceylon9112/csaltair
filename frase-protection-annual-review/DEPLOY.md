@@ -135,7 +135,7 @@ Register repo URL, resource group, and SWA name in your SaltAIR/client deploymen
 
 | Piece | Location |
 |--------|----------|
-| Build + deploy workflow | `.github/workflows/azure-static-web-apps.yml` — `npm ci` / `npm run build`, then upload `dist/` when secrets allow |
+| Build + deploy workflow | Repo root `.github/workflows/frase-azure-static-web-apps.yml` — `npm ci` / `npm run build` in `frase-protection-annual-review/`, then upload `dist/` when secrets allow |
 | SPA routing on Azure | `public/staticwebapp.config.json` → copied to `dist/` by Vite |
 | Git / branch defaults | `package.json` → `repository`, `saltair.pushRemoteBranch` |
 | Optional local tools | `npm run deploy:check` (needs `gh`), `npm run azure:github-secret` (legacy token upload) |
