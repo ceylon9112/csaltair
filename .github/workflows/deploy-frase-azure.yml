@@ -32,12 +32,13 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Install and build Frase (runner)
+      - name: Install dependencies (Frase)
         working-directory: frase-protection-annual-review
-        run: |
-          set -euo pipefail
-          npm ci --no-audit --no-fund
-          npm run build
+        run: npm install --no-audit --no-fund
+
+      - name: Build Frase (runner)
+        working-directory: frase-protection-annual-review
+        run: npm run build
 
       - name: Azure Login
         uses: azure/login@v2
