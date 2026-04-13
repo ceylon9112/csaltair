@@ -1,0 +1,127 @@
+# Frase Protection — same SaltAIr pattern as Jazz Fest: push → Docker (ACR) → Azure Container Apps.
+# Prereq: repository secret AZURE_CREDENTIALS (same SP as Jazz Fest is fine if it has Contributor on both RGs).
+# Optional vars (repo Settings → Actions → Variables): FRASE_AZURE_RESOURCE_GROUP, FRASE_AZURE_CONTAINER_APP_NAME, FRASE_AZURE_CONTAINER_ENV
+
+name: Deploy Frase to Azure Container Apps
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frase-protection-annual-review/**'
+      - 'Dockerfile.frase'
+      - 'docker/nginx-spa.conf'
+      - '.github/workflows/deploy-frase-azure.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: frase-container-apps-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  AZURE_RESOURCE_GROUP: ${{ vars.FRASE_AZURE_RESOURCE_GROUP || 'frase-annual-review-rg' }}
+  AZURE_CONTAINER_APP_NAME: ${{ vars.FRASE_AZURE_CONTAINER_APP_NAME || 'frase-annual-review-web' }}
+  AZURE_CONTAINER_ENV: ${{ vars.FRASE_AZURE_CONTAINER_ENV || 'frase-annual-review-env' }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Create Resource Group
+        run: |
+          az group create --name ${{ env.AZURE_RESOURCE_GROUP }} --location eastus --output none
+
+      - name: Create Container Apps Environment
+        run: |
+          az containerapp env show --name ${{ env.AZURE_CONTAINER_ENV }} --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --output none 2>/dev/null || \
+          az containerapp env create \
+            --name ${{ env.AZURE_CONTAINER_ENV }} \
+            --resource-group ${{ env.AZURE_RESOURCE_GROUP }} \
+            --location eastus \
+            --output none
+
+      - name: Get or create ACR
+        id: acr
+        run: |
+          ACR_NAME="${AZURE_RESOURCE_GROUP//-/}acr"
+          az acr create --name $ACR_NAME --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --sku Basic --output none 2>/dev/null || true
+          echo "registry=$ACR_NAME" >> $GITHUB_OUTPUT
+          echo "login_server=$ACR_NAME.azurecr.io" >> $GITHUB_OUTPUT
+
+      - name: Build and push image
+        run: |
+          APP="${{ env.AZURE_CONTAINER_APP_NAME }}"
+          REPO="${APP//-/}"
+          az acr build --registry ${{ steps.acr.outputs.registry }} \
+            --image "${REPO}:${{ github.sha }}" \
+            --file Dockerfile.frase .
+
+      - name: Create or update Container App
+        id: deploy
+        env:
+          CREDS_JSON: ${{ secrets.AZURE_CREDENTIALS }}
+        run: |
+          set -e
+          LOGIN_SERVER="${{ steps.acr.outputs.login_server }}"
+          APP_NAME="${{ env.AZURE_CONTAINER_APP_NAME }}"
+          RG="${{ env.AZURE_RESOURCE_GROUP }}"
+          REPO="${APP_NAME//-/}"
+          IMAGE="${LOGIN_SERVER}/${REPO}:${{ github.sha }}"
+
+          CLIENT_ID=$(echo "$CREDS_JSON" | jq -r .clientId)
+          CLIENT_SECRET=$(echo "$CREDS_JSON" | jq -r .clientSecret)
+          if [ -z "$CLIENT_ID" ] || [ "$CLIENT_ID" = "null" ] || [ -z "$CLIENT_SECRET" ] || [ "$CLIENT_SECRET" = "null" ]; then
+            echo "::error::Could not parse clientId/clientSecret from AZURE_CREDENTIALS"
+            exit 1
+          fi
+          PASS_FILE="${RUNNER_TEMP:-/tmp}/acr-sp-secret.pass"
+          printf '%s' "$CLIENT_SECRET" > "$PASS_FILE"
+          chmod 600 "$PASS_FILE"
+
+          if az containerapp show --name "$APP_NAME" --resource-group "$RG" &>/dev/null; then
+            PROV=$(az containerapp show --name "$APP_NAME" --resource-group "$RG" --query "properties.provisioningState" -o tsv)
+            if [ "$PROV" = "Failed" ]; then
+              echo "Removing failed Container App for clean redeploy..."
+              az containerapp delete --name "$APP_NAME" --resource-group "$RG" --yes --output none
+            fi
+          fi
+
+          EXISTS=$(az containerapp show --name "$APP_NAME" --resource-group "$RG" --query name -o tsv 2>/dev/null || true)
+          if [ -z "$EXISTS" ]; then
+            az containerapp create \
+              --name "$APP_NAME" \
+              --resource-group "$RG" \
+              --environment ${{ env.AZURE_CONTAINER_ENV }} \
+              --image "$IMAGE" \
+              --target-port 80 \
+              --ingress external \
+              --registry-server "$LOGIN_SERVER" \
+              --registry-username "$CLIENT_ID" \
+              --registry-password "@${PASS_FILE}" \
+              --output none
+          else
+            az containerapp registry set \
+              --name "$APP_NAME" \
+              --resource-group "$RG" \
+              --server "$LOGIN_SERVER" \
+              --username "$CLIENT_ID" \
+              --password "@${PASS_FILE}"
+            az containerapp update \
+              --name "$APP_NAME" \
+              --resource-group "$RG" \
+              --image "$IMAGE" \
+              --output none
+          fi
+          rm -f "$PASS_FILE"
+          FQDN=$(az containerapp show --name "$APP_NAME" --resource-group "$RG" --query "properties.configuration.ingress.fqdn" -o tsv)
+          echo "url=https://$FQDN" >> $GITHUB_OUTPUT
+
+      - name: Deployment URL
+        run: echo "Deployed to ${{ steps.deploy.outputs.url }}"

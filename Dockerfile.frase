@@ -1,0 +1,16 @@
+# Frase Protection — Annual Review (Vite SPA → nginx), same hosting pattern as patron-web / Jazz Fest.
+FROM node:20-bookworm-slim AS build
+WORKDIR /src
+
+COPY frase-protection-annual-review/package.json frase-protection-annual-review/package-lock.json ./frase-protection-annual-review/
+
+RUN npm ci --prefix frase-protection-annual-review --include=dev
+
+COPY frase-protection-annual-review/ ./frase-protection-annual-review/
+
+RUN npm run build --prefix frase-protection-annual-review
+
+FROM nginx:alpine
+COPY --from=build /src/frase-protection-annual-review/dist /usr/share/nginx/html
+COPY docker/nginx-spa.conf /etc/nginx/conf.d/default.conf
+EXPOSE 80
