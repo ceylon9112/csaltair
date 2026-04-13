@@ -27,6 +27,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install and build Frase (runner)
+        working-directory: frase-protection-annual-review
+        run: |
+          set -euo pipefail
+          npm ci --no-audit --no-fund
+          npm run build
+
       - name: Azure Login
         uses: azure/login@v2
         with:
@@ -63,17 +75,18 @@ jobs:
           echo "registry=$NAME" >> "$GITHUB_OUTPUT"
           echo "login_server=$NAME.azurecr.io" >> "$GITHUB_OUTPUT"
 
-      - name: Verify Docker build (runner)
-        run: |
-          set -euo pipefail
-          docker build -f frase-protection-annual-review/Dockerfile -t frase:ci frase-protection-annual-review
-
       - name: Build and push image
         run: |
           set -euo pipefail
           APP="${{ env.AZURE_CONTAINER_APP_NAME }}"
           REPO="${APP//-/}"
-          cd frase-protection-annual-review
+          CTX="${RUNNER_TEMP}/frase-acr-ctx"
+          rm -rf "$CTX"
+          mkdir -p "$CTX"
+          cp -r frase-protection-annual-review/dist "$CTX/"
+          cp frase-protection-annual-review/nginx-spa.conf "$CTX/"
+          cp frase-protection-annual-review/Dockerfile "$CTX/"
+          cd "$CTX"
           az acr build --registry "${{ steps.acr.outputs.registry }}" \
             --image "${REPO}:${{ github.sha }}" \
             --file Dockerfile \
