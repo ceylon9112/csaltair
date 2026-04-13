@@ -9,8 +9,6 @@ on:
     branches: [main]
     paths:
       - 'frase-protection-annual-review/**'
-      - 'Dockerfile.frase'
-      - 'docker/nginx-spa.conf'
       - '.github/workflows/deploy-frase-azure.yml'
   workflow_dispatch:
 
@@ -50,18 +48,32 @@ jobs:
       - name: Get or create ACR
         id: acr
         run: |
-          ACR_NAME="${AZURE_RESOURCE_GROUP//-/}acr"
-          az acr create --name $ACR_NAME --resource-group ${{ env.AZURE_RESOURCE_GROUP }} --sku Basic --output none 2>/dev/null || true
-          echo "registry=$ACR_NAME" >> $GITHUB_OUTPUT
-          echo "login_server=$ACR_NAME.azurecr.io" >> $GITHUB_OUTPUT
+          set -euo pipefail
+          RG="${{ env.AZURE_RESOURCE_GROUP }}"
+          # Globally unique ACR name (5–50 lowercase alphanumerics); avoids collisions on short RG-derived names.
+          SLUG=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9')
+          NAME="frase${SLUG}acr"
+          if [ "${#NAME}" -gt 50 ]; then
+            NAME=$(echo "$NAME" | cut -c1-50)
+          fi
+          echo "Using ACR name: $NAME (resource group: $RG)"
+          if ! az acr show --name "$NAME" --resource-group "$RG" &>/dev/null; then
+            az acr create --name "$NAME" --resource-group "$RG" --sku Basic --output none
+          fi
+          echo "registry=$NAME" >> "$GITHUB_OUTPUT"
+          echo "login_server=$NAME.azurecr.io" >> "$GITHUB_OUTPUT"
 
       - name: Build and push image
         run: |
+          set -euo pipefail
           APP="${{ env.AZURE_CONTAINER_APP_NAME }}"
           REPO="${APP//-/}"
-          az acr build --registry ${{ steps.acr.outputs.registry }} \
+          # Build context = Frase app folder only (avoids repo-root .dockerignore side effects on npm packages).
+          az acr build --registry "${{ steps.acr.outputs.registry }}" \
+            --platform linux/amd64 \
             --image "${REPO}:${{ github.sha }}" \
-            --file Dockerfile.frase .
+            --file frase-protection-annual-review/Dockerfile \
+            frase-protection-annual-review
 
       - name: Create or update Container App
         id: deploy
