@@ -63,17 +63,21 @@ jobs:
           echo "registry=$NAME" >> "$GITHUB_OUTPUT"
           echo "login_server=$NAME.azurecr.io" >> "$GITHUB_OUTPUT"
 
+      - name: Verify Docker build (runner)
+        run: |
+          set -euo pipefail
+          docker build -f frase-protection-annual-review/Dockerfile -t frase:ci frase-protection-annual-review
+
       - name: Build and push image
         run: |
           set -euo pipefail
           APP="${{ env.AZURE_CONTAINER_APP_NAME }}"
           REPO="${APP//-/}"
-          # Build context = Frase app folder only (avoids repo-root .dockerignore side effects on npm packages).
+          cd frase-protection-annual-review
           az acr build --registry "${{ steps.acr.outputs.registry }}" \
-            --platform linux/amd64 \
             --image "${REPO}:${{ github.sha }}" \
-            --file frase-protection-annual-review/Dockerfile \
-            frase-protection-annual-review
+            --file Dockerfile \
+            .
 
       - name: Create or update Container App
         id: deploy
