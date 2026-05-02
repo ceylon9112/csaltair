@@ -1,16 +1,34 @@
-import { parseISO, format, isAfter, isBefore, addMinutes, parse } from 'date-fns';
+import { parseISO, format, isAfter, isBefore, addMinutes } from 'date-fns';
 import { enUS } from 'date-fns/locale';
 
-/** Anchor date — only the parsed clock is used for 12-hour display. */
-const CLOCK_ANCHOR = new Date(2026, 0, 1);
-
-function parseHm(timeStr: string): Date {
-  return parse(timeStr.trim(), 'HH:mm', CLOCK_ANCHOR);
-}
-
-/** Format stored `HH:mm` as 12-hour with AM/PM (e.g. `6:45 PM`). */
+/**
+ * Converts stored fest times (`HH:mm` 24h) to English 12-hour with AM/PM.
+ * Implemented without parsing through Date so display never depends on date-fns
+ * locale bundle quirks or TZ in production.
+ */
 export function formatTime12(timeStr: string): string {
-  return format(parseHm(timeStr), 'h:mm a', { locale: enUS });
+  const s = timeStr.trim().replace(/^[\u200B-\u200D\uFEFF]+|[\u200B-\u200D\uFEFF]+$/g, '');
+  const m = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(s);
+  if (!m) return timeStr.trim();
+  const hour24 = Number(m[1]);
+  const minute = m[2];
+  if (m[3] !== undefined) {
+    const sec = Number(m[3]);
+    if (Number.isNaN(sec) || sec > 59) return timeStr.trim();
+  }
+  if (
+    Number.isNaN(hour24) ||
+    Number.isNaN(Number(minute)) ||
+    hour24 < 0 ||
+    hour24 > 23 ||
+    Number(minute) > 59
+  ) {
+    return timeStr.trim();
+  }
+  const ampm = hour24 >= 12 ? 'PM' : 'AM';
+  let h12 = hour24 % 12;
+  if (h12 === 0) h12 = 12;
+  return `${h12}:${minute} ${ampm}`;
 }
 
 /** e.g. `6:45 PM–8:30 PM` */
