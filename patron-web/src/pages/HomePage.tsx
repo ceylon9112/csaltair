@@ -6,7 +6,12 @@ import { useContentBundle } from '@/hooks/useContentQuery';
 import { contentRepository } from '@/services/content/ContentRepository';
 import type { Performance } from '@/types/models';
 import { currentFestivalDayOrDefault, formatDayLabel } from '@/utils/festivalDates';
-import { formatPerformanceRange, isPerformanceHappeningNow, isStartingWithinMinutes } from '@/utils/time';
+import {
+  formatPerformanceRange,
+  formatTimeRange12,
+  isPerformanceHappeningNow,
+  isStartingWithinMinutes,
+} from '@/utils/time';
 
 import { usePreferencesStore } from '@/store/preferencesStore';
 
@@ -98,7 +103,7 @@ export function HomePage() {
                 <Link key={p.id} to={`/performance/${p.id}`}>
                   <strong>{artist?.name ?? 'Artist'}</strong>
                   <div className="caption">
-                    {p.stageName} · {p.startTime}–{p.endTime}
+                    {p.stageName} · {formatTimeRange12(p.startTime, p.endTime)}
                   </div>
                 </Link>
               );

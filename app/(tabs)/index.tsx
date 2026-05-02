@@ -14,7 +14,7 @@ import { useAppTheme } from '@/theme/ThemeContext';
 import { usePreferencesStore } from '@/store/preferencesStore';
 import type { Performance } from '@/types/models';
 import { currentFestivalDayOrDefault, formatDayLabel } from '@/utils/festivalDates';
-import { isPerformanceHappeningNow, isStartingWithinMinutes, formatPerformanceRange } from '@/utils/time';
+import { isPerformanceHappeningNow, isStartingWithinMinutes, formatPerformanceRange, formatTimeRange12 } from '@/utils/time';
 import { contentRepository } from '@/services/content/ContentRepository';
 
 export default function HomeScreen() {
@@ -114,7 +114,7 @@ export default function HomeScreen() {
                   <Pressable style={{ marginTop: 12 }}>
                     <AppText variant="subtitle">{artist?.name ?? 'Artist'}</AppText>
                     <AppText variant="caption">
-                      {p.stageName} · {p.startTime}–{p.endTime}
+                      {p.stageName} · {formatTimeRange12(p.startTime, p.endTime)}
                     </AppText>
                   </Pressable>
                 </Link>

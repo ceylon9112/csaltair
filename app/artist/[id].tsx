@@ -9,6 +9,7 @@ import { Card } from '@/components/common/Card';
 import { useContentBundle } from '@/hooks/useContentQuery';
 import { useAppTheme } from '@/theme/ThemeContext';
 import { contentRepository } from '@/services/content/ContentRepository';
+import { formatTimeRange12 } from '@/utils/time';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -99,7 +100,7 @@ export default function ArtistDetailScreen() {
               <Pressable>
                 <Card style={{ marginBottom: theme.spacing.sm }}>
                   <AppText variant="subtitle">
-                    {p.date} · {p.startTime} – {p.endTime}
+                    {p.date} · {formatTimeRange12(p.startTime, p.endTime)}
                   </AppText>
                   <AppText variant="caption" style={{ marginTop: 4 }}>
                     {p.stageName}

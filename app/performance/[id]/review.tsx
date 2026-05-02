@@ -9,6 +9,7 @@ import { useContentBundle } from '@/hooks/useContentQuery';
 import { useAppTheme } from '@/theme/ThemeContext';
 import { contentRepository } from '@/services/content/ContentRepository';
 import { useReviewStore, REVIEW_NOTE_MAX } from '@/store/reviewStore';
+import { formatTimeRange12 } from '@/utils/time';
 
 export default function ReviewScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -40,7 +41,7 @@ export default function ReviewScreen() {
       <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }} edges={['bottom']}>
         <View style={{ padding: theme.spacing.md, flex: 1 }}>
           <AppText variant="subtitle">
-            {artist.name} · {perf.startTime}
+            {artist.name} · {formatTimeRange12(perf.startTime, perf.endTime)}
           </AppText>
           <AppText variant="caption" style={{ marginTop: 8, color: theme.colors.textSecondary }}>
             Private on this device only — not shared publicly in MVP.

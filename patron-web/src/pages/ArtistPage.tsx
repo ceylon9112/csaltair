@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { useContentBundle } from '@/hooks/useContentQuery';
 import { contentRepository } from '@/services/content/ContentRepository';
+import { formatTimeRange12 } from '@/utils/time';
 
 export function ArtistPage() {
   const { id } = useParams<{ id: string }>();
@@ -61,7 +62,7 @@ export function ArtistPage() {
         <div className="stack">
           {performances.map((p) => (
             <Link key={p.id} to={`/performance/${p.id}`}>
-              {p.stageName} · {p.startTime}–{p.endTime}
+              {p.stageName} · {formatTimeRange12(p.startTime, p.endTime)}
             </Link>
           ))}
         </div>

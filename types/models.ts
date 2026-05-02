@@ -29,7 +29,7 @@ export interface Performance {
   id: string;
   artistId: string;
   date: string; // YYYY-MM-DD
-  startTime: string; // HH:mm (local fest day)
+  startTime: string; // Stored as HH:mm (24h); use formatTime12 / formatTimeRange12 / formatPerformanceRange for display
   endTime: string;
   stageId: string;
   stageName: string;

@@ -3,7 +3,7 @@ import { Platform } from 'react-native';
 
 import type { Performance } from '@/types/models';
 
-import { performanceToDate } from '@/utils/time';
+import { performanceToDate, formatTime12 } from '@/utils/time';
 
 /**
  * Local notifications for MVP + hooks for future remote push (FCM/APNs).
@@ -53,7 +53,7 @@ export async function scheduleShowReminderAsync(
   const id = await Notifications.scheduleNotificationAsync({
     content: {
       title: 'Starting soon at Jazz Fest',
-      body: `${artistName} · ${performance.stageName} · ${performance.startTime}`,
+      body: `${artistName} · ${performance.stageName} · ${formatTime12(performance.startTime)}`,
       data: { performanceId: performance.id, type: 'show_reminder' },
       sound: true,
     },

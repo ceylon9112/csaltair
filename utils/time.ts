@@ -1,4 +1,22 @@
-import { parseISO, format, isAfter, isBefore, addMinutes } from 'date-fns';
+import { parseISO, format, isAfter, isBefore, addMinutes, parse } from 'date-fns';
+import { enUS } from 'date-fns/locale';
+
+/** Anchor date — only the parsed clock is used for 12-hour display. */
+const CLOCK_ANCHOR = new Date(2026, 0, 1);
+
+function parseHm(timeStr: string): Date {
+  return parse(timeStr.trim(), 'HH:mm', CLOCK_ANCHOR);
+}
+
+/** Format stored `HH:mm` as 12-hour with AM/PM (e.g. `6:45 PM`). */
+export function formatTime12(timeStr: string): string {
+  return format(parseHm(timeStr), 'h:mm a', { locale: enUS });
+}
+
+/** e.g. `6:45 PM–8:30 PM` */
+export function formatTimeRange12(start: string, end: string): string {
+  return `${formatTime12(start)}–${formatTime12(end)}`;
+}
 
 /** Combine fest day + HH:mm into a JS Date in the device's local timezone. */
 export function performanceToDate(dateStr: string, timeStr: string): Date {
@@ -11,7 +29,7 @@ export function formatPerformanceRange(
   end: string
 ): string {
   const d = parseISO(dateStr);
-  return `${format(d, 'EEE MMM d')} · ${start}–${end}`;
+  return `${format(d, 'EEE MMM d', { locale: enUS })} · ${formatTimeRange12(start, end)}`;
 }
 
 export function isPerformanceHappeningNow(

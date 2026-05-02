@@ -4,6 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useContentBundle } from '@/hooks/useContentQuery';
 import { contentRepository } from '@/services/content/ContentRepository';
 import { REVIEW_NOTE_MAX, useReviewStore } from '@/store/reviewStore';
+import { formatTimeRange12 } from '@/utils/time';
 
 export function ReviewPage() {
   const { id } = useParams<{ id: string }>();
@@ -41,7 +42,7 @@ export function ReviewPage() {
     <div className="page">
       <h1 className="title">Your review</h1>
       <p className="muted">
-        {artist.name} · {perf.startTime} — private on this device only.
+        {artist.name} · {formatTimeRange12(perf.startTime, perf.endTime)} — private on this device only.
       </p>
 
       <form onSubmit={onSubmit}>
