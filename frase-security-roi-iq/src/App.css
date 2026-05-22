@@ -275,6 +275,28 @@ input[type='number'] {
   background: #fff;
 }
 
+.vertical-card-link {
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--gold-light);
+  text-decoration: underline;
+  margin-left: 0.5rem;
+  min-height: auto;
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.header .link-btn {
+  color: var(--gold-light);
+}
+
 .vertical-card strong {
   color: var(--navy);
 }
@@ -349,13 +371,12 @@ input[type='number'] {
   padding: 0.65rem 1rem;
 }
 
-.link-btn {
-  background: none;
-  border: none;
-  color: var(--gold-light);
-  text-decoration: underline;
-  margin-left: 0.5rem;
-  min-height: auto;
+.secondary-btn,
+.primary-btn {
+  font: inherit;
+  cursor: pointer;
+  border-radius: 8px;
+  min-height: 48px;
 }
 
 .action-hint {
